@@ -1,0 +1,75 @@
+name: Build and Push Images
+
+# Runs on every push to main, and on pull requests (build-only, no push,
+# so you get build-failure feedback on a PR before it's ever merged).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Needed for the job to push images to ghcr.io using the automatic
+# GITHUB_TOKEN — no manual registry credentials/secrets required at all.
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      # Runs this job once per service, in parallel. "fail-fast: false"
+      # means if the Go build breaks, the 4 Python builds still finish —
+      # you get ALL the failure info in one CI run, not just the first one.
+      fail-fast: false
+      matrix:
+        service:
+          - gateway
+          - auth
+          - chat
+          - ingestion
+          - retrieval
+          - llm-gateway
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Compute lowercase image owner
+        # ghcr.io rejects uppercase in image paths. github.repository_owner
+        # preserves whatever case your GitHub username actually has, so we
+        # normalize it here rather than assume it's already lowercase.
+        id: vars
+        run: echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        # Only actually push on a real push to main, not on PRs — PRs just
+        # build to prove the Dockerfile works, they don't publish anything.
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./services/${{ matrix.service }}
+          # Two tags per image: the git SHA (immutable, exact provenance —
+          # "this image came from exactly this commit") and "latest"
+          # (convenience pointer for local pulls / manual testing).
+          tags: |
+            ghcr.io/${{ steps.vars.outputs.owner }}/${{ matrix.service }}:${{ github.sha }}
+            ghcr.io/${{ steps.vars.outputs.owner }}/${{ matrix.service }}:latest
+          # push: only actually publish on a real push event; PRs build
+          # without pushing (see the login step's condition above).
+          push: ${{ github.event_name == 'push' }}
+          # Reuses layer cache from the previous run of THIS SAME service —
+          # this is what makes rebuilds fast when only one service changed,
+          # even before we add path-based filtering.
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
