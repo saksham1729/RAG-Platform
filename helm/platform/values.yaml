@@ -1,0 +1,90 @@
+# Each key under `services` becomes a Deployment + Service pair, generated
+# by looping over this map in templates/deployment.yaml and templates/service.yaml.
+# Adding a 7th service later means adding one more entry here — no new
+# template file needed.
+services:
+  gateway:
+    image: gateway:v1
+    port: 8080
+    replicas: 2
+    envFromConfigMap: gateway-config
+    resources:
+      requests:
+        cpu: 100m
+        memory: 64Mi
+      limits:
+        cpu: 500m
+        memory: 128Mi
+
+  auth:
+    image: auth:v1
+    port: 8080
+    replicas: 2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 250m
+        memory: 128Mi
+
+  chat:
+    image: chat:v1
+    port: 8000
+    replicas: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  ingestion:
+    image: ingestion:v1
+    port: 8000
+    replicas: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  retrieval:
+    image: retrieval:v1
+    port: 8000
+    replicas: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  llm-gateway:
+    image: llm-gateway:v1
+    port: 8000
+    replicas: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+# Consumed by templates/configmap.yaml to build the gateway-config ConfigMap.
+# Note these values reference OTHER services by their generated Service name
+# ("<name>-service"), same convention as the raw manifests we wrote earlier.
+gatewayConfig:
+  AUTH_SERVICE_URL: "http://auth-service:8080"
+  CHAT_SERVICE_URL: "http://chat-service:8000"
+  INGESTION_SERVICE_URL: "http://ingestion-service:8000"
+  RETRIEVAL_SERVICE_URL: "http://retrieval-service:8000"
+
+ingress:
+  enabled: true
+  className: nginx

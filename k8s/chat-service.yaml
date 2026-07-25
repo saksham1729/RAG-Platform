@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-service
+spec:
+  # selector: this Service sends traffic to any Pod whose labels match
+  # app: chat — that's BOTH replicas from the Deployment above. The Service
+  # doesn't know or care about the Deployment; it just watches for pods
+  # with matching labels and load-balances across whichever ones currently exist.
+  selector:
+    app: chat
+
+  ports:
+    - port: 8000        # the port other things reach THIS SERVICE on
+      targetPort: 8000   # the port on the POD to forward to (matches containerPort)
+
+  # type: ClusterIP (the default) means "internal to the cluster only."
+  # The gateway will reach this at http://chat-service:8000 — same DNS-by-name
+  # pattern as docker-compose, but now backed by a real load balancer across
+  # however many replicas exist, and it auto-updates as pods come and go.
+  type: ClusterIP

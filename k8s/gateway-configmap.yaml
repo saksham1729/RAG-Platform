@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-config
+data:
+  # These values use Kubernetes Service names as hostnames — this works
+  # because kube-dns (running inside the cluster) resolves "auth-service"
+  # to the auth Service's ClusterIP automatically, same DNS-by-name idea
+  # as compose, just cluster-wide instead of single-machine.
+  #
+  # WHY A CONFIGMAP INSTEAD OF HARDCODING THESE IN THE DEPLOYMENT YAML:
+  # if these URLs ever change (new port, renamed service), you edit ONE
+  # object and every Deployment referencing it picks up the change on next
+  # rollout — versus hunting through every Deployment file that duplicated
+  # the same values. ConfigMaps also let you have different values per
+  # environment (dev/staging/prod) without touching the Deployment spec at all.
+  AUTH_SERVICE_URL: "http://auth-service:8080"
+  CHAT_SERVICE_URL: "http://chat-service:8000"
+  INGESTION_SERVICE_URL: "http://ingestion-service:8000"
+  RETRIEVAL_SERVICE_URL: "http://retrieval-service:8000"

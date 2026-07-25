@@ -1,0 +1,42 @@
+services:
+  gateway:
+    build: ./services/gateway
+    ports:
+      - "8080:8080"
+    environment:
+      AUTH_SERVICE_URL: http://auth:8080
+      CHAT_SERVICE_URL: http://chat:8000
+      INGESTION_SERVICE_URL: http://ingestion:8000
+      RETRIEVAL_SERVICE_URL: http://retrieval:8000
+    depends_on:
+      - auth
+      - chat
+      - ingestion
+      - retrieval
+
+  auth:
+    build: ./services/auth
+    # No ports published to host on purpose: only the gateway needs to
+    # reach this service. In Kubernetes (Module 4) this maps directly to
+    # a ClusterIP Service — internal-only, no external exposure.
+
+  chat:
+    build: ./services/chat
+    environment:
+      LLM_GATEWAY_URL: http://llm-gateway:8000
+      RETRIEVAL_SERVICE_URL: http://retrieval:8000
+
+  ingestion:
+    build: ./services/ingestion
+
+  retrieval:
+    build: ./services/retrieval
+
+  llm-gateway:
+    build: ./services/llm-gateway
+
+# Compose auto-creates a default bridge network shared by all services here,
+# giving each one DNS resolution by its service name (e.g. "chat", "auth") —
+# exactly the mechanism we tested manually with `docker network create`
+# earlier, just automated. This is the direct conceptual predecessor to
+# Kubernetes' cluster DNS in Module 4.

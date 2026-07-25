@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-service
+spec:
+  selector:
+    app: gateway
+  ports:
+    - port: 8080
+      targetPort: 8080
+  # ClusterIP for now — same as everything else. The gateway conceptually
+  # SHOULD be externally reachable (it's the front door), but kind clusters
+  # don't expose NodePort/LoadBalancer to your host machine unless the
+  # cluster was created with special port mappings. We'll do this properly
+  # with an Ingress controller shortly — for now we reach it the same way
+  # we reached Chat: kubectl port-forward.
+  type: ClusterIP

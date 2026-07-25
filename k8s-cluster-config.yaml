@@ -1,0 +1,24 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    # This label is what the ingress-nginx kind-specific manifest looks
+    # for to decide which node to schedule the controller onto.
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+    extraPortMappings:
+      # These map container ports on the kind node to real ports on YOUR
+      # host machine. Without this, port 80/443 traffic has no path from
+      # your laptop into the cluster at all — this is the one-time setup
+      # cost of Ingress on kind specifically (cloud providers wire this
+      # differently, via an actual cloud load balancer).
+      - containerPort: 80
+        hostPort: 80
+        protocol: TCP
+      - containerPort: 443
+        hostPort: 443
+        protocol: TCP

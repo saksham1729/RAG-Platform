@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat
+  labels:
+    app: chat
+spec:
+  # Desired state: "I always want 2 identical pods running." If one crashes,
+  # the Deployment controller notices the actual count drifted from 2 and
+  # starts a replacement — this is the self-healing behavior compose never had.
+  replicas: 2
+
+  # selector tells the Deployment which Pods belong to it. It MUST match
+  # the labels in template.metadata.labels below — this is how the
+  # Deployment controller finds "its" pods among everything else in the cluster.
+  selector:
+    matchLabels:
+      app: chat
+
+  template:
+    metadata:
+      labels:
+        app: chat
+    spec:
+      containers:
+        - name: chat
+          image: chat:v1
+          # imagePullPolicy IfNotPresent is essential for kind: it tells
+          # Kubernetes "if you already have this image loaded (which we just
+          # did via `kind load docker-image`), don't try to pull it from a
+          # registry." Without this, Kubernetes defaults to Always for
+          # anything without a version-locked tag pattern and will fail
+          # trying to reach Docker Hub for an image that only exists locally.
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+
+          # Readiness probe: Kubernetes will NOT send traffic to this pod
+          # until /health returns 200. This prevents the classic problem of
+          # traffic hitting a pod before it's finished starting up.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 2
+            periodSeconds: 5
+
+          # Liveness probe: if THIS fails repeatedly, Kubernetes kills and
+          # restarts the container — it assumes the process is stuck/deadlocked,
+          # not just slow. Readiness controls TRAFFIC; liveness controls RESTARTS.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          # Resource requests/limits: without these, one runaway service can
+          # starve every other pod on the node. requests = what's guaranteed
+          # to this container; limits = the hard ceiling before it's throttled/killed.
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"

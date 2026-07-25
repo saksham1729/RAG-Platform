@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: platform-ingress
+  annotations:
+    # Tells the nginx controller this Ingress belongs to it specifically
+    # (relevant if multiple ingress controllers ever coexist in one cluster).
+    nginx.ingress.kubernetes.io/rewrite-target: /$1
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          # Everything under / gets routed to gateway-service on port 8080.
+          # The gateway itself already does its own internal routing
+          # (/api/chat -> chat-service, /api/auth -> auth-service, etc.),
+          # so Ingress's job here is deliberately just "get traffic into
+          # the cluster and to the one front-door service" — the L7
+          # smarts inside that front door are the gateway's job, not Ingress's.
+          - path: /(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: gateway-service
+                port:
+                  number: 8080
