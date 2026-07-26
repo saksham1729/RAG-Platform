@@ -31,8 +31,8 @@ services:
   chat:
     image: chat:v1
     port: 8000
-    replicas: 2
-    resources:
+    replicas: 
+    resources: 3
       requests:
         cpu: 100m
         memory: 128Mi
