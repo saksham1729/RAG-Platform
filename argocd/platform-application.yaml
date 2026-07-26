@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  # "project: default" is ArgoCD's built-in catch-all project. Real
+  # multi-team setups create named Projects to scope which repos/clusters
+  # a team's Applications can touch — unnecessary for a solo project.
+  project: default
+
+  source:
+    # CHANGE THIS to your actual repo URL before applying.
+    repoURL: https://github.com/saksham1729/RAG-Platform.git
+    targetRevision: main
+    # Path INSIDE the repo where the Helm chart lives — ArgoCD auto-detects
+    # it's a Helm chart because it finds Chart.yaml here.
+    path: helm/platform
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+
+  syncPolicy:
+    automated:
+      # prune: if a resource is removed from git (e.g. you delete a
+      # Deployment from the chart), ArgoCD deletes it from the cluster
+      # too, instead of leaving orphaned resources behind forever.
+      prune: true
+      # selfHeal: if someone manually kubectl-edits a live resource so it
+      # no longer matches git, ArgoCD reverts it back to match git on its
+      # next reconcile loop. This is the "drift correction" behavior
+      # mentioned earlier — git wins, always.
+      selfHeal: true
+    syncOptions:
+      # Creates the destination namespace automatically if it doesn't
+      # exist yet (not needed here since "default" always exists, but
+      # this is the standard flag to include for any other namespace).
+      - CreateNamespace=true
