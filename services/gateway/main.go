@@ -6,7 +6,35 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+// These three metrics together implement the RED method (Rate, Errors,
+// Duration) for this service. Prometheus scrapes them from /metrics on
+// whatever interval we configure later — nothing pushes these anywhere;
+// they just sit here as current counters/histograms until scraped.
+var (
+	requestsTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "gateway_requests_total",
+			Help: "Total number of requests handled by the gateway, labeled by route and status code.",
+		},
+		[]string{"path", "status"},
+	)
+
+	requestDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "gateway_request_duration_seconds",
+			Help:    "Request duration in seconds, labeled by route.",
+			Buckets: prometheus.DefBuckets, // sensible default latency buckets (5ms to 10s)
+		},
+		[]string{"path"},
+	)
 )
 
 // route maps a URL path prefix to a backend service.
@@ -33,15 +61,22 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// loggingMiddleware wraps a handler and logs method, path, status, and latency.
-// This structured line is what Module 10 (Loki/EFK) will scrape and index.
+// loggingMiddleware wraps a handler, logs each request, AND records the
+// same information as Prometheus metrics. Logs and metrics are generated
+// from the same event here deliberately — they're different VIEWS of the
+// same request, not different data sources.
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: 200}
 		next.ServeHTTP(rec, r)
+		duration := time.Since(start)
+
 		log.Printf(`method=%s path=%s status=%d duration_ms=%d`,
-			r.Method, r.URL.Path, rec.status, time.Since(start).Milliseconds())
+			r.Method, r.URL.Path, rec.status, duration.Milliseconds())
+
+		requestsTotal.WithLabelValues(r.URL.Path, strconv.Itoa(rec.status)).Inc()
+		requestDuration.WithLabelValues(r.URL.Path).Observe(duration.Seconds())
 	})
 }
 
@@ -67,6 +102,11 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
+
+	// promhttp.Handler() serves the current state of every registered
+	// metric in Prometheus's text exposition format — this is literally
+	// what Prometheus's scraper parses on its scrape interval.
+	mux.Handle("/metrics", promhttp.Handler())
 
 	routes := []route{
 		{prefix: "/api/auth", targetURL: getEnv("AUTH_SERVICE_URL", "http://localhost:8001")},
