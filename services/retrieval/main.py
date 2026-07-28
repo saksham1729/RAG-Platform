@@ -1,8 +1,30 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from typing import List
+import time
+from prometheus_client import Counter, Histogram, make_asgi_app
 
 app = FastAPI(title="retrieval-service")
+
+REQUESTS_TOTAL = Counter(
+    "retrieval_requests_total", "Total requests handled by the retrieval service", ["path", "status"]
+)
+REQUEST_DURATION = Histogram(
+    "retrieval_request_duration_seconds", "Request duration in seconds", ["path"]
+)
+
+
+@app.middleware("http")
+async def metrics_middleware(request: Request, call_next):
+    start = time.time()
+    response = await call_next(request)
+    duration = time.time() - start
+    REQUESTS_TOTAL.labels(path=request.url.path, status=response.status_code).inc()
+    REQUEST_DURATION.labels(path=request.url.path).observe(duration)
+    return response
+
+
+app.mount("/metrics", make_asgi_app())
 
 
 class SearchRequest(BaseModel):
