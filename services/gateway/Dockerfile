@@ -1,6 +1,6 @@
 # ---- Build stage ----
 # Full Go toolchain lives only here; this layer never ships to production.
-FROM golang:1.22-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /src
 
