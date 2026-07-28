@@ -4,7 +4,7 @@
 # template file needed.
 services:
   gateway:
-    image: gateway:v1
+    image: gateway:v2
     port: 8080
     replicas: 2
     envFromConfigMap: gateway-config
@@ -17,7 +17,7 @@ services:
         memory: 128Mi
 
   auth:
-    image: auth:v1
+    image: auth:v2
     port: 8080
     replicas: 2
     resources:
@@ -29,7 +29,7 @@ services:
         memory: 128Mi
 
   chat:
-    image: chat:v1
+    image: chat:v2
     port: 8000
     replicas: 3 
     resources:
@@ -41,7 +41,7 @@ services:
         memory: 256Mi
 
   ingestion:
-    image: ingestion:v1
+    image: ingestion:v2
     port: 8000
     replicas: 2
     resources:
@@ -53,7 +53,7 @@ services:
         memory: 256Mi
 
   retrieval:
-    image: retrieval:v1
+    image: retrieval:v2
     port: 8000
     replicas: 2
     resources:
@@ -65,7 +65,7 @@ services:
         memory: 256Mi
 
   llm-gateway:
-    image: llm-gateway:v1
+    image: llm-gateway:v2
     port: 8000
     replicas: 2
     resources:
