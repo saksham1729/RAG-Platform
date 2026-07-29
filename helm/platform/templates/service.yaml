@@ -4,11 +4,21 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ $name }}-service
+  labels:
+    app: {{ $name }}
+    # This label is what our ServiceMonitor's selector will match against —
+    # it's how the Prometheus Operator knows WHICH Services to scrape,
+    # separate from how the Service itself routes traffic to Pods.
+    monitoring: "true"
 spec:
   selector:
     app: {{ $name }}
   ports:
-    - port: {{ $svc.port }}
+    # Naming the port "http" (instead of leaving it unnamed) lets the
+    # ServiceMonitor reference it by name, which is more robust than
+    # referencing a raw port number if it ever changes per-service.
+    - name: http
+      port: {{ $svc.port }}
       targetPort: {{ $svc.port }}
   type: ClusterIP
 {{- end }}

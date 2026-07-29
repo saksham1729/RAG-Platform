@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: platform-services
+  labels:
+    # kube-prometheus-stack's Prometheus instance is itself configured
+    # (by default) to only pick up ServiceMonitors carrying this specific
+    # release label — this is the single most common "why isn't Prometheus
+    # scraping my service" gotcha, so it's called out explicitly here
+    # rather than left implicit.
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      monitoring: "true"
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
