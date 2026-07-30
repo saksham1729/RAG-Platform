@@ -4,7 +4,7 @@
 # template file needed.
 services:
   gateway:
-    image: gateway:v2
+    image: gateway:v1
     port: 8080
     replicas: 2
     envFromConfigMap: gateway-config
@@ -17,7 +17,7 @@ services:
         memory: 128Mi
 
   auth:
-    image: auth:v2
+    image: auth:v1
     port: 8080
     replicas: 2
     resources:
@@ -29,9 +29,9 @@ services:
         memory: 128Mi
 
   chat:
-    image: chat:v2
+    image: chat:v1
     port: 8000
-    replicas: 3 
+    replicas: 2
     resources:
       requests:
         cpu: 100m
@@ -41,7 +41,7 @@ services:
         memory: 256Mi
 
   ingestion:
-    image: ingestion:v2
+    image: ingestion:v1
     port: 8000
     replicas: 2
     resources:
@@ -53,7 +53,7 @@ services:
         memory: 256Mi
 
   retrieval:
-    image: retrieval:v2
+    image: retrieval:v1
     port: 8000
     replicas: 2
     resources:
@@ -65,7 +65,7 @@ services:
         memory: 256Mi
 
   llm-gateway:
-    image: llm-gateway:v2
+    image: llm-gateway:v1
     port: 8000
     replicas: 2
     resources:
@@ -88,3 +88,10 @@ gatewayConfig:
 ingress:
   enabled: true
   className: nginx
+
+# Set to true only once kube-prometheus-stack (and its ServiceMonitor CRD)
+# is installed in the cluster. If this is true while the CRD doesn't exist,
+# ArgoCD's atomic sync will refuse to deploy ANYTHING in this release, not
+# just the ServiceMonitor — this flag exists specifically to avoid that trap.
+monitoring:
+  enabled: false
