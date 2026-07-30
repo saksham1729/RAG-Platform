@@ -94,4 +94,4 @@ ingress:
 # ArgoCD's atomic sync will refuse to deploy ANYTHING in this release, not
 # just the ServiceMonitor — this flag exists specifically to avoid that trap.
 monitoring:
-  enabled: false
+  enabled: true
