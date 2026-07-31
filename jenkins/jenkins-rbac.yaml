@@ -1,0 +1,30 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins-secret-reader
+  namespace: jenkins
+rules:
+  # Narrowly scoped: only get/list/watch on Secrets, only in the jenkins
+  # namespace. This is the least-privilege grant that satisfies what the
+  # kubernetes-credentials-provider plugin actually needs — no create,
+  # update, or delete, and no access to Secrets in any other namespace.
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-secret-reader-binding
+  namespace: jenkins
+subjects:
+  # This binds the Role above to the SPECIFIC ServiceAccount named in the
+  # error message — "jenkins" in the "jenkins" namespace — not to any
+  # broader group of users.
+  - kind: ServiceAccount
+    name: jenkins
+    namespace: jenkins
+roleRef:
+  kind: Role
+  name: jenkins-secret-reader
+  apiGroup: rbac.authorization.k8s.io
